@@ -333,6 +333,7 @@ class Net(nn.Module):
 
         # freeze the vgg_net
         for vgg_layer in self.vgg_layers:
+            vgg_layer.to(device)
             for param in vgg_layer.parameters():
                 param.requires_grad = False
 
@@ -350,7 +351,7 @@ class Net(nn.Module):
         return results[1:]
 
     def generate(self, content, style, alpha=1.0):
-        assert 0 <= alpha <= 1
+        # assert 0 <= alpha <= 1
         content_repr = self.enc(content)
         style_repr = self.enc(style)
         t = adain(content_repr, style_repr)
@@ -368,17 +369,19 @@ class Net(nn.Module):
     def calc_content_loss(self, input, target):
         assert (input.size() == target.size())
         assert (target.requires_grad is False)
+
         return self.mse_loss(input, target)
 
     def forward(self, content, style, alpha=1.0):
-        assert 0 <= alpha <= 1
+        # assert 0 <= alpha <= 1
         generated = self.generate(content, style, alpha)
 
         content_feats = self.vgg_features(content)
         style_feats = self.vgg_features(style)
         gen_feats = self.vgg_features(generated)
 
-        loss_c = self.calc_content_loss(gen_feats[-1], content_feats[-1])
+        adain_feats = adain(content_feats[-1], style_feats[-1])
+        loss_c = self.calc_content_loss(gen_feats[-1], adain_feats)
 
         loss_s = self.calc_style_loss(gen_feats[0], style_feats[0])
         for i in range(1, 4):
@@ -408,21 +411,72 @@ def ConvNetPruner(old_net, f1, f2):
     """
     Prune based on importance
     """
-    size_1 = int(f1 * 256)
-    size_2 = int(f2 * 512)
-
     old_net.cpu()
+
+    orig_size_1 = old_net.enc[16].out_channels
+    orig_size_2 = old_net.enc[29].out_channels
+
+    size_1 = int(f1 * orig_size_1)
+    size_2 = int(f2 * orig_size_2)
 
     net = Net(deepcopy(old_net.vgg_weights_dict))
     net.load_state_dict(deepcopy(old_net.state_dict()))
+
+    ids = conv_imp_ids(net.enc[16], size_1)
+    net.enc[16] = prune(net.enc[16], "IN", ids)
+    net.enc[19] = prune(net.enc[19], "OUT", ids)
+
+    ids = conv_imp_ids(net.enc[19], size_1)
+    net.enc[19] = prune(net.enc[19], "IN", ids)
+    net.enc[22] = prune(net.enc[22], "OUT", ids)
+
+    ids = conv_imp_ids(net.enc[22], size_1)
+    net.enc[22] = prune(net.enc[22], "IN", ids)
+    net.enc[25] = prune(net.enc[25], "OUT", ids)
+
+    ids = conv_imp_ids(net.enc[25], size_1)
+    net.enc[25] = prune(net.enc[25], "IN", ids)
+    net.enc[29] = prune(net.enc[29], "OUT", ids)
 
     ids = conv_imp_ids(net.enc[29], size_2)
     net.enc[29] = prune(net.enc[29], "IN", ids)
     net.dec[1] = prune(net.dec[1], "OUT", ids)
 
+    ids = conv_imp_ids(net.dec[1], size_1)
+    net.dec[1] = prune(net.dec[1], "IN", ids)
+    net.dec[5] = prune(net.dec[5], "OUT", ids)
+
+    ids = conv_imp_ids(net.dec[5], size_1)
+    net.dec[5] = prune(net.dec[5], "IN", ids)
+    net.dec[8] = prune(net.dec[8], "OUT", ids)
+
+    ids = conv_imp_ids(net.dec[8], size_1)
+    net.dec[8] = prune(net.dec[8], "IN", ids)
+    net.dec[11] = prune(net.dec[11], "OUT", ids)
+
+    ids = conv_imp_ids(net.dec[11], size_1)
+    net.dec[11] = prune(net.dec[11], "IN", ids)
+    net.dec[14] = prune(net.dec[14], "OUT", ids)
+
     return net.to(device)
 
-def train_model(net, train_dataloader, test_dataloader, learning_rate=1e-3):
+def get_test_loss(net, test_dataloader, bar=tqdm):
+    bar = (lambda x: x) if bar is None else tqdm
+    net.eval()
+    total_loss = 0
+    count = 0
+    for content, style in tqdm(test_dataloader):
+        content, style = content.to(device), style.to(device)
+        loss_c, loss_s = net(content, style)
+        loss = loss_c + COST_LAMBDA * loss_s
+        total_loss += loss.item()
+        count += 1
+    del content
+    del style
+    torch.cuda.empty_cache()
+    return total_loss / count
+
+def train_model(net, train_dataloader, test_dataloader, learning_rate=1e-5):
   optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
   net.eval()
   count = 0
@@ -431,7 +485,7 @@ def train_model(net, train_dataloader, test_dataloader, learning_rate=1e-3):
 
       optimizer.zero_grad()
 
-      loss_s, loss_c = net(content, style)
+      loss_c, loss_s = net(content, style)
       loss = loss_c + COST_LAMBDA * loss_s
 
       loss.backward()
@@ -441,31 +495,16 @@ def train_model(net, train_dataloader, test_dataloader, learning_rate=1e-3):
       if count % 10000 == 0:
           n = count / 10000
           torch.save(net, f"checkpoint_{n}.pt")
-          print(f"checkpoint_{n}", get_test_loss(net, test_dataloader))
+          print(f"checkpoint_{n}", get_test_loss(net, test_dataloader, bar=None))
 
-def get_test_loss(net, test_dataloader):
-  net.eval()
-  total_loss = 0
-  count = 0
-  for content, style in tqdm(test_dataloader):
-      content, style = content.to(device), style.to(device)
-      loss_c, loss_s = net(content, style)
-      loss = loss_c + 10 * loss_s
-      total_loss += loss.item()
-      count += 1
-  del content
-  del style
-  torch.cuda.empty_cache()
-  return total_loss / count
-
-def example(net, alpha=1.0):
+def example(net, alpha=1.0, ax=plt):
   gen_t = net.generate(ref_content.to(device).unsqueeze(0), ref_style.to(device).unsqueeze(0), alpha)
   plt.imshow(gen_t[0].permute(1, 2, 0).cpu().detach().numpy())
   plt.show()
 
-NUM_ITERS = 100000
+NUM_ITERS = 5000
 NUM_TEST = 1000
-BATCH_SIZE = 1
+BATCH_SIZE = 2
 COST_LAMBDA = 10
 
 train_dataset = JointDataset("train2014", "artbench-10-imagefolder", NUM_ITERS)
@@ -473,12 +512,29 @@ train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=Fals
 test_dataset = JointDatasetTesting("train2014", "artbench-10-imagefolder", NUM_TEST)
 test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-net = Net(torch.load("vgg_normalised.pth"))
-net.init_weights(torch.load("encoder.pth"), torch.load("decoder.pth"))
-net.to(device)
+oldnet = Net(torch.load("vgg_normalised.pth"))
+oldnet.init_weights(torch.load("encoder.pth"), torch.load("decoder.pth"))
+oldnet.to(device)
+example(oldnet)
+
+print(get_test_loss(oldnet, test_dataloader))
+
+net = ConvNetPruner(oldnet, 0.8, 0.4)
+example(net)
+
 print(get_test_loss(net, test_dataloader))
 
-net = ConvNetPruner(net, 1.0, 0.5)
-print(get_test_loss(net, test_dataloader))
+train_model(net, train_dataloader, test_dataloader, learning_rate=1e-4)
 
 example(net)
+
+fig, axs = plt.subplots(1, 11)
+for i in range(11):
+    gen_t = net.generate(ref_content.to(device).unsqueeze(0), ref_style.to(device).unsqueeze(0), i / 10)[0].permute(1, 2, 0).cpu().detach().numpy()
+    axs[i].imshow(gen_t)
+    # f.set_figheight(15)
+fig.set_figwidth(30)
+plt.show()
+
+print(get_test_loss(net, test_dataloader))
+
