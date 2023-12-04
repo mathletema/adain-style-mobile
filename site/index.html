@@ -18,18 +18,20 @@
 
 </head>
 <body>
-  <div class="container">
+  <div class="container" style="max-width: 720px;">
     <div class="row" style="margin-top: 5%;">
       <div class="column">
         <h1>Fast Arbitrary Neural Style Transfer</h1>
+        <div style="text-align: justify;">
         <p><strong>Get started:</strong> Upload any content and style image below, and we'll generate a composite image for you!</p>
+        </div>
       </div>
     </div>
     <div class="row">
-      <div class="one-half column" style="display: flex; justify-content: right; padding-right: 5%;">
+      <div class="one-half column" style="display: flex; justify-content: right; padding-right: 0%;">
         <div style="text-align: center;">
-          <label for="content" class="button" style="width: 300px; height: 300px; background-size: cover; background-position: center;" id="content-wrapper">
-            <input type="file" accept="image/*" id="content" hidden>
+          <label for="content" class="button" style="width: 300px; height: 300px; background-size: cover; background-position: center; border-style: dashed;" id="content-wrapper">
+            <input type="file" accept="image/*" id="content" name="content" hidden>
             <div style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;" id="content-text">
               <div>
                 <p>Upload content image</p>
@@ -42,18 +44,18 @@
           const content_wrapper = document.getElementById("content-wrapper");
           const content_input = document.getElementById("content");
           const content_text = document.getElementById("content-text");
-
           content_input.addEventListener("change", () => {
             let img = URL.createObjectURL(content_input.files[0]);
             content_wrapper.style.backgroundImage = `url(${img})`;
+            content_wrapper.style.borderStyle = "solid";
             content_text.innerText = "";
           })
         </script>
       </div>
-      <div class="one-half column" style="display: flex; justify-content: left; padding-left: 5%;">
+      <div class="one-half column" style="display: flex; justify-content: left; padding-left: 0%;">
         <div style="text-align: center;">
-          <label for="style" class="button" style="width: 300px; height: 300px; background-size: cover; background-position: center;" id="style-wrapper">
-            <input type="file" accept="image/*" id="style" hidden>
+          <label for="style" class="button" style="width: 300px; height: 300px; background-size: cover; background-position: center; border-style: dashed;" id="style-wrapper">
+            <input type="file" accept="image/*" id="style" name="style" hidden>
             <div style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;" id="style-text">
               <div>
                 <p>Upload style image</p>
@@ -66,10 +68,10 @@
           const style_wrapper = document.getElementById("style-wrapper");
           const style_input = document.getElementById("style");
           const style_text = document.getElementById("style-text");
-
           style_input.addEventListener("change", () => {
             let img = URL.createObjectURL(style_input.files[0]);
             style_wrapper.style.backgroundImage = `url(${img})`;
+            style_wrapper.style.borderStyle = "solid";
             style_text.innerText = "";
           })
         </script>
@@ -77,11 +79,22 @@
     </div>
     <div class="row">
       <div class="column">
-        <input class="button-primary" type="button" value="Generate" style="width: 100%;">
+        <script>
+          let submit = () => {
+            const formData = new FormData();
+            formData.append("content", content_input.files[0]);
+            formData.append("style", style_input.files[0]);
+
+            fetch("/submit", {method: "POST", body: formData}).then((res) => {
+              console.log(res);
+            })
+          };
+        </script>
+        <button class="button-primary" style="width: 100%;" onclick="submit()">Generate</button>
       </div>
     </div>
     <div class="row" style="margin-top: 3rem;">
-      <div class="column">
+      <div class="column" style="text-align: justify;">
         <h4>About</h4>
         <p>
         Neural style transfer is the task of applying the visual style or aesthetic of one image, onto another reference image. Neural style transfer is typically 
@@ -97,7 +110,7 @@
     </div>
     <div class="row">
       <div class="column" style="text-align: center; margin-bottom: 10%;">
-        Made with <span style="font-family: sans-serif;">❤️</span> by Ishank and Nithin
+        Made with <span style="font-family: sans-serif;">❤️</span> by <a href="https://www.mit.edu/~ishank">Ishank</a> and Nithin
       </div>
     </div>
   </div>
