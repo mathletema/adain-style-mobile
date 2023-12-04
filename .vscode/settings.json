@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "cstdio": "cpp",
+        "stdint.h": "c",
+        "jerror.h": "c",
+        "stdio.h": "c",
+        "jpeglib.h": "c",
+        "img.h": "c"
+    }
+}
