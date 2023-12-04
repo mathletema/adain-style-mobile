@@ -4,7 +4,8 @@
 #include "tensor.h"
 
 typedef struct encoder_weights {
-    int hi;
+    tensor4d_t *conv2d_weight[10];
+    tensor3d_t *conv2d_bias[10];
 } encoder_weights_t;
 
 encoder_weights_t* load_weights_encoder(const char* path);

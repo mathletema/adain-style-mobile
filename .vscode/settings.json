@@ -5,6 +5,7 @@
         "jerror.h": "c",
         "stdio.h": "c",
         "jpeglib.h": "c",
-        "img.h": "c"
+        "img.h": "c",
+        "tensor.h": "c"
     }
 }

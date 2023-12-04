@@ -15,7 +15,11 @@ const upload = multer({ storage });
 const app = express();
 const port = 8000;
 
+const python = "C:\\Users\\Ishank\\python-3.10\\python.exe"
+const fastnet = "..\\fastnst-python\\fastnst.py"
+
 app.use('/css', express.static("../site/css"))
+app.use('/public', express.static("./outs"))
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, "../site/index.html"));
@@ -30,12 +34,19 @@ app.post('/submit', upload.any(), (req, res, next) => {
         console.log(content);
         console.log("style:");
         console.log(style);
-        exec(`fastnst.exe ${content.path} ${style.path}`, {cwd: "../fastnst"}, (err, stdout, stderr) => {
-            console.log(`fastnst: ${stdout}`);
+        
+
+        exec(`${python} ${fastnet} "${content.path}" "${style.path}" outs\\out.png`, 
+        (err, stdout, stderr) => {
+            console.log(`stderr: ${stderr}`)
+            console.log(`stdout: ${stdout}`)
+            console.log("done!");
+            return res.status(200).json(req.files || req.file); 
         })
-        return res.status(200).json(req.files || req.file);
+        
+    } else {
+        return res.status(400).json({ msg: 'An error occurred!' });
     }
-    return res.status(400).json({ msg: 'An error occurred!' });
 });
 
 app.listen(port);
