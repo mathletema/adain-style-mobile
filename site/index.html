@@ -93,7 +93,7 @@
             fetch("http://localhost:8000/submit", {method: "POST", body: formData}).then((res) => {
               document.getElementById("waiting").hidden = true;
               document.getElementById("generated").hidden = false;
-              document.getElementById("generated-wrapper").style.backgroundImage = "url('public/out.jpg')";
+              document.getElementById("generated-wrapper").style.backgroundImage = "url('http://localhost:8000/public/out.jpg')";
             })
           };
         </script>
