@@ -1,3 +1,5 @@
+
+
 import torch
 import torch.nn as nn
 from torchvision import transforms
@@ -110,31 +112,28 @@ def fastnst(content, style):
     return generated
 
 if __name__ == "__main__":
-    N = len(sys.argv)
-    if (N < 4):
-        print("Usage: fastnst.py [content.jpg] [style.jpg] [out.jpg]")
-        exit()
-    content_path = sys.argv[1]
-    style_path = sys.argv[2]
-    out_path = sys.argv[3]
+    while True:
+        content_path, style_path, out_path = input().split(",")
 
-    print("content_path:", content_path)
-    print("style_path:", style_path)
-    print("out_path:", out_path)
+        print(f"{content_path=}", flush=True)
+        print(f"{style_path=}")
+        print(f"{out_path=}")
 
-    content = transforms.Compose([
-            transforms.Resize(512),
-            transforms.CenterCrop(512),
-            transforms.ToTensor()
-        ])(Image.open(content_path))
-    
-    style = transforms.Compose([
-            transforms.Resize(512),
-            transforms.CenterCrop(512),
-            transforms.ToTensor()
-        ])(Image.open(style_path))
-    
-    generated = fastnst(content.unsqueeze(0), style.unsqueeze(0))
+        content = transforms.Compose([
+                transforms.Resize(512),
+                transforms.CenterCrop(512),
+                transforms.ToTensor()
+            ])(Image.open(content_path))
+        
+        style = transforms.Compose([
+                transforms.Resize(512),
+                transforms.CenterCrop(512),
+                transforms.ToTensor()
+            ])(Image.open(style_path))
+        
+        generated = fastnst(content.unsqueeze(0), style.unsqueeze(0))
 
-    out_image = transforms.ToPILImage()(generated[0])
-    out_image.save(out_path)
+        out_image = transforms.ToPILImage()(generated[0])
+        out_image.save(out_path)
+
+        print("done", flush=True)

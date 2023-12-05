@@ -118,6 +118,8 @@ std::vector<float> combine_images(img_t* content, img_t* style) {
     return input_tensor_values;
 }
 
+
+
 int main(int argc, char** argv) {
     /** LOAD ENCODER **/
     Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "encoder");
