@@ -77,17 +77,21 @@
         </script>
       </div>
     </div>
-    <div class="row" id="submit">
+    <div class="row" id="submit" style="margin-bottom: 2rem;">
       <div class="column">
         <script>
           let submit = () => {
+            document.getElementById("inps").hidden = true;
+            document.getElementById("submit").hidden = true;
+            document.getElementById("waiting").hidden = false;
+            setInterval(animate_waiting,  800);
+            
             const formData = new FormData();
             formData.append("content", content_input.files[0]);
             formData.append("style", style_input.files[0]);
 
-            fetch("/submit", {method: "POST", body: formData}).then((res) => {
-              document.getElementById("inps").hidden = true;
-              document.getElementById("submit").hidden = true;
+            fetch("http://localhost:8000/submit", {method: "POST", body: formData}).then((res) => {
+              document.getElementById("waiting").hidden = true;
               document.getElementById("generated").hidden = false;
               document.getElementById("generated-wrapper").style.backgroundImage = "url('public/out.jpg')";
             })
@@ -96,7 +100,26 @@
         <button class="button-primary" style="width: 100%;" onclick="submit()">Generate</button>
       </div>
     </div>
-    <div class="row" id="generated" hidden>
+    <div class="row" id="waiting" hidden>
+      <div class="column">
+        <p>Waiting<span id="dots">.</span></p>
+      </div>
+      <script>
+        const dots = document.getElementById("dots");
+        var len_dots = 1;
+        function animate_waiting () {
+          if (len_dots < 5) {
+            dots.innerText = ".".repeat(len_dots);
+          } else {
+            dots.innerText = "";
+            len_dots = 0;
+          }
+          len_dots += 1;
+        }
+      </script>
+    </div>
+    <div id="generated" hidden>
+    <div class="row">
       <div class="column" style="display: flex; justify-content: center; padding-right: 0%;">
         <div style="text-align: center;">
           <div class="button" for="content" style="width: 300px; height: 300px; background-size: cover; background-position: center; border-style: dashed;" id="generated-wrapper">
@@ -105,7 +128,13 @@
         </div>
       </div>
     </div>
-    <div class="row" style="margin-top: 3rem;">
+    <div class="row">
+      <div class="column" style="text-align: left;">
+        <p><a href=".">Again?</a></p>
+      </div>
+    </div>
+   </div>
+    <div class="row">
       <div class="column" style="text-align: justify;">
         <h4>About</h4>
         <p>
@@ -122,7 +151,7 @@
     </div>
     <div class="row">
       <div class="column" style="text-align: center; margin-bottom: 10%;">
-        Made with <span style="font-family: sans-serif;">❤️</span> by <a href="https://www.mit.edu/~ishank">Ishank</a> and Nithin
+        Made with <span style="font-family: sans-serif;">❤️</span> by <a href="https://www.mit.edu/~ishank">Ishank</a> and <a href="https://github.com/thinkinavi24">Nithin</a>
       </div>
     </div>
   </div>

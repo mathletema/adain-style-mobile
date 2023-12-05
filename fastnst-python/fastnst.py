@@ -6,9 +6,8 @@ from torchvision import transforms
 import sys
 from PIL import Image
 from pathlib import Path
+from PIL import ImageFilter
 import os
-
-torch.set_num_threads(4)
 
 encoder = nn.Sequential(
     nn.Conv2d(3, 3, kernel_size=(1, 1), stride=(1, 1)),
@@ -115,6 +114,8 @@ if __name__ == "__main__":
     while True:
         content_path, style_path, out_path = input().split(",")
 
+        # Path(out_path).unlink(missing_ok=True)
+
         print(f"{content_path=}", flush=True)
         print(f"{style_path=}")
         print(f"{out_path=}")
@@ -131,9 +132,13 @@ if __name__ == "__main__":
                 transforms.ToTensor()
             ])(Image.open(style_path))
         
-        generated = fastnst(content.unsqueeze(0), style.unsqueeze(0))
+        generated = fastnst(content.unsqueeze(0), style.unsqueeze(0))[0]
 
-        out_image = transforms.ToPILImage()(generated[0])
+        out_image = transforms.ToPILImage()(generated.clamp(0, 1))
+        # out_image.filter(ImageFilter.SMOOTH_MORE).save(out_path)
         out_image.save(out_path)
 
         print("done", flush=True)
+
+        # Path(content_path).unlink(missing_ok=True)
+        # Path(style_path).unlink(missing_ok=True)
